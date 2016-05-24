@@ -310,14 +310,14 @@ struct parse_error : public runtime_error {
             << " column: " << f - line_start + 1 << endl;
 
         bool in = true;
-        for (Iterator i(line_start); (i != r.last) && (in || *i != '\n'); ++i) {
-            if (i == l) {
+        for (Iterator ii(line_start); (ii != r.last) && (in || *ii != '\n'); ++ii) {
+            if (ii == l) {
                 in = false;
             }
-            if (is_space(*i)) {
+            if (is_space(*ii)) {
                 err << ' ';
             } else {
-                err << static_cast<char>(*i);
+                err << static_cast<char>(*ii);
             }
         }
         err << endl;
@@ -1224,7 +1224,7 @@ public:
     using is_parser_type = true_type;
     using is_handle_type = false_type;
     using has_side_effects = typename Parser::has_side_effects;
-    using result_type = void;
+    using result_type = typename Parser::result_type;
     int const rank;
 
      explicit combinator_discard(Parser const& q)
