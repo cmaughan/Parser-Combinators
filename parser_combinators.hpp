@@ -286,6 +286,7 @@ struct default_inherited {};
 
 using unique_defs = map<string, string>;
 
+#pragma warning (disable : 4456)
 struct parse_error : public runtime_error {
 
     template <typename Parser, typename Iterator, typename Range>
@@ -310,36 +311,38 @@ struct parse_error : public runtime_error {
             << " column: " << f - line_start + 1 << endl;
 
         bool in = true;
-        for (Iterator ii(line_start); (ii != r.last) && (in || *ii != '\n'); ++ii) {
-            if (ii == l) {
+        for (Iterator inew(line_start); (inew != r.last) && (in || *inew != '\n'); ++inew) {
+            if (inew == l) {
                 in = false;
             }
-            if (is_space(*ii)) {
+            if (is_space(*inew)) {
                 err << ' ';
             } else {
-                err << static_cast<char>(*ii);
+                err << static_cast<char>(*inew);
             }
         }
         err << endl;
 
+        /*
         i = line_start;
         while (i != f) {
             err << ' ';
             ++i;
         }
-
+        */
         err << '^';
         ++i;
 
+        /*
         if (i != l) {
             ++i;
-            while (i != l) {
+            while (&i != &l) {
                 err << '-';
                 ++i;
             }
             err << "^";
         }
-        
+        */
         err << endl << "expecting: ";
        
         unique_defs defs;
@@ -348,7 +351,7 @@ struct parse_error : public runtime_error {
         for (auto const& d : defs) {
             err << "\t" << d.first << " = " << d.second << ";" << endl;
         }
-
+        
         return err.str();
     }
 
@@ -358,6 +361,7 @@ struct parse_error : public runtime_error {
     ) : runtime_error(message(what, p, f, l, r)) {}
 };
 
+#pragma warning (default : 4456)
 //============================================================================
 // Type Helpers
 
@@ -393,11 +397,11 @@ A fold_tuple(F f, A a, tuple<Ts...> const& t) {
 template <typename A, typename B> struct is_compat {
     using PA = typename add_pointer<A>::type;
     using PB = typename add_pointer<B>::type;
-     bool value = is_convertible<PA, PB>::value;
+    static constexpr bool value = is_convertible<PA, PB>::value;
 };
 
 template <typename A, typename B> struct is_compatible {
-     bool value = is_compat<A, B>::value || is_compat<B, A>::value;
+     static constexpr bool value = is_compat<A, B>::value || is_compat<B, A>::value;
 };
 
 //----------------------------------------------------------------------------
@@ -408,7 +412,7 @@ template <typename A, typename B> struct is_compatible {
 template <typename P1, typename P2, typename = void> struct least_general {};
 
 template <typename P1, typename P2> struct least_general <P1, P2,
-    typename enable_if<is_compat<typename P2::result_type, typename P1::result_type>::value 
+    typename enable_if<is_compat<typename P2::result_type, typename P1::result_type>::value
     && !is_same<typename P1::result_type, typename P2::result_type>::value>::type> {
     using result_type = typename P2::result_type;
 };
@@ -934,8 +938,8 @@ template <typename P1, typename P2,
     typename = typename enable_if<is_same<typename P1::is_parser_type, true_type>::value
         || is_same<typename P1::is_handle_type, true_type>::value>::type,
     typename = typename enable_if<is_same<typename P2::is_parser_type, true_type>::value
-        || is_same<typename P2::is_handle_type, true_type>::value>::type,
-    typename = typename enable_if<is_compatible<typename P1::result_type, typename P2::result_type>::value>::type>
+        || is_same<typename P2::is_handle_type, true_type>::value>::type/*,
+    typename = typename enable_if<is_compatible<typename P1::result_type, typename P2::result_type>::value>::type*/>
  combinator_sequence<P1, P2> operator&& (P1 const& p1, P2 const& p2) {
     return combinator_sequence<P1, P2>(p1, p2);
 }
@@ -1224,7 +1228,7 @@ public:
     using is_parser_type = true_type;
     using is_handle_type = false_type;
     using has_side_effects = typename Parser::has_side_effects;
-    using result_type = typename Parser::result_type;
+    using result_type = void;// typename Parser::result_type;
     int const rank;
 
      explicit combinator_discard(Parser const& q)
@@ -1281,7 +1285,7 @@ public:
 
         bool const b = p(i, r, result, st);
 
-#ifdef DEBUG
+#ifdef _DEBUG
         if (b) {
             cout << msg << ": ";
 
@@ -1587,7 +1591,7 @@ template <typename P, typename Q>  auto sep_by(P const& p, Q const& q)
 // properly.
 
 // skip to start of first token.
- auto first_token = discard(many(accept(is_space)));
+auto first_token = discard(many(accept(is_space)));
 
 template <typename Parser> struct tok_name {
     Parser const p;
